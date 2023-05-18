@@ -5,9 +5,28 @@ const $messageForm = document.getElementById("message-form");
 const $sendLocationButton = document.getElementById("send-location");
 const $messageSubmitButton = document.getElementById("message-button");
 const $messageFormInput = document.getElementById("message");
+const $messages = document.getElementById("messages");
+
+// Templates
+const messageTemplate = document.getElementById("message-template").innerHTML;
+const locationTemplate = document.getElementById("location-template").innerHTML;
 
 socket.on("message", (message) => {
   console.log(message);
+  const html = Mustache.render(messageTemplate, {
+    message: message.text,
+    createdAt: moment(message.createdAt).format("h:mm a"),
+  });
+  $messages.insertAdjacentHTML("beforeend", html);
+});
+
+socket.on("locationMessage", (url) => {
+  console.log(url);
+  const html = Mustache.render(locationTemplate, {
+    location: url.url,
+    createdAt: moment(url.createdAt).format("h:mm a"),
+  });
+  $messages.insertAdjacentHTML("beforeend", html);
 });
 
 $messageForm.addEventListener("submit", (event) => {

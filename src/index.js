@@ -3,6 +3,10 @@ const express = require("express");
 const http = require("http");
 const socketio = require("socket.io");
 const badwords = require("bad-words");
+const {
+  generateMessage,
+  generateLocationMessage,
+} = require("./utils/messages");
 
 const app = express();
 // socketio expects a raw http server so therefore we connect express and sockio using http librarie.
@@ -19,9 +23,10 @@ io.on("connection", (socket) => {
   console.log("New WebSocket connection");
 
   // this send message to everyone lestening to message event. BUT doesnt update everytime some sends message to server.
-  socket.emit("message", "Welcome!");
+  // we used a function that will will accept 'welcome' as message and also produce a timestamp
+  socket.emit("message", generateMessage("Welcome!"));
   // this send message to everyone EXCEPT the person who just joined or refreshed his page.
-  socket.broadcast.emit("message", "A new user has joined!");
+  socket.broadcast.emit("message", generateMessage("A new user has joined!"));
 
   // lestening to sendMessage event
   socket.on("sendMessage", (message, deliveryNotification) => {
@@ -31,7 +36,7 @@ io.on("connection", (socket) => {
       return deliveryNotification("Message container unapprioperiate words!");
     }
     // sends/bradcasts message to everybody
-    io.emit("message", message);
+    io.emit("message", generateMessage(message));
     // setting this callback to get a response when we receive something. we set this in Chat.js
     deliveryNotification("Message received!");
   });
@@ -39,15 +44,17 @@ io.on("connection", (socket) => {
   // acknowledgment is a callback same as deliveryNotification above.
   socket.on("sendLocation", (location, acknowledgment) => {
     io.emit(
-      "message",
-      `https://www.google.com/maps/@${location.lat},${location.long}`
+      "locationMessage",
+      generateLocationMessage(
+        `https://www.google.com/maps/@${location.lat},${location.long}`
+      )
     );
     acknowledgment("Location shared!");
   });
 
   // this code only runs when client is disconnect
   socket.on("disconnect", () => {
-    io.emit("message", "A user has left!");
+    io.emit("message", generateMessage("A user has left!"));
   });
 });
 
