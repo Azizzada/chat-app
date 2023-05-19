@@ -7,6 +7,12 @@ const {
   generateMessage,
   generateLocationMessage,
 } = require("./utils/messages");
+const {
+  addUser,
+  removeUser,
+  getUser,
+  getUsersInRoom,
+} = require("./utils/users");
 
 const app = express();
 // socketio expects a raw http server so therefore we connect express and sockio using http librarie.
@@ -22,11 +28,24 @@ app.use(express.static(publicDirectoryPath));
 io.on("connection", (socket) => {
   console.log("New WebSocket connection");
 
-  // this send message to everyone lestening to message event. BUT doesnt update everytime some sends message to server.
-  // we used a function that will will accept 'welcome' as message and also produce a timestamp
-  socket.emit("message", generateMessage("Welcome!"));
-  // this send message to everyone EXCEPT the person who just joined or refreshed his page.
-  socket.broadcast.emit("message", generateMessage("A new user has joined!"));
+  socket.on("join", ({ username, room }, callback) => {
+    const { error, user } = addUser({ id: socket.id, username, room });
+
+    if (error) {
+      return callback(error);
+    }
+    socket.join(user.room);
+
+    // this send message to everyone lestening to message event. BUT doesnt update everytime some sends message to server.
+    // we used a function that will will accept 'welcome' as message and also produce a timestamp
+    socket.emit("message", generateMessage("Welcome!"));
+    // this send message to everyone EXCEPT the person who just joined or refreshed his page.
+    socket.broadcast
+      .to(user.room)
+      .emit("message", generateMessage(`${user.username} has joined!`));
+
+    callback();
+  });
 
   // lestening to sendMessage event
   socket.on("sendMessage", (message, deliveryNotification) => {
@@ -54,7 +73,14 @@ io.on("connection", (socket) => {
 
   // this code only runs when client is disconnect
   socket.on("disconnect", () => {
-    io.emit("message", generateMessage("A user has left!"));
+    const user = removeUser(socket.id);
+
+    if (user) {
+      io.to(user.room).emit(
+        "message",
+        generateMessage(`${user.username} has left!`)
+      );
+    }
   });
 });
 

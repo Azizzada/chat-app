@@ -11,6 +11,11 @@ const $messages = document.getElementById("messages");
 const messageTemplate = document.getElementById("message-template").innerHTML;
 const locationTemplate = document.getElementById("location-template").innerHTML;
 
+// options
+const { username, room } = Qs.parse(location.search, {
+  ignoreQueryPrefix: true,
+});
+
 socket.on("message", (message) => {
   console.log(message);
   const html = Mustache.render(messageTemplate, {
@@ -63,3 +68,17 @@ $sendLocationButton.addEventListener("click", () => {
     });
   }
 });
+
+socket.emit("join", { username, room }, (error) => {
+  if (error) {
+    alert(error);
+    location.href = "/";
+  }
+});
+
+// socket.emit ===>>>>> that send an event to a spicific client that matches that creteria set.
+// io.emit ===>>>>> that send an event to every client
+// socket.broadcast.emit ===>>>>> that send an event to every client expect for socket.
+
+// io.to.emit ===>>>>> that emit an event to everyone in a spicific chatroom without sending it to other room
+// socket.broadcast.to.emit ===>>>>> that sends event to everyone in a spicific chatroom But not sending it to socket.
