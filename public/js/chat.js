@@ -6,32 +6,69 @@ const $sendLocationButton = document.getElementById("send-location");
 const $messageSubmitButton = document.getElementById("message-button");
 const $messageFormInput = document.getElementById("message");
 const $messages = document.getElementById("messages");
+const sidebar = document.getElementById("sidebar");
 
 // Templates
 const messageTemplate = document.getElementById("message-template").innerHTML;
 const locationTemplate = document.getElementById("location-template").innerHTML;
+const sidebarTemplate = document.getElementById("sidebar-template").innerHTML;
 
 // options
 const { username, room } = Qs.parse(location.search, {
   ignoreQueryPrefix: true,
 });
 
+const autoscroll = () => {
+  // new message element
+  const $newMessage = $messages.lastElementChild;
+
+  // Height of the new message
+  const newMessageStyles = getComputedStyle($newMessage);
+  const newMessageMargin = parseInt(newMessageStyles.marginBottom);
+  const newMessageHeight = $newMessage.offsetHeight + newMessageMargin;
+
+  // Visible Height
+  const visibleHeight = $messages.offsetHeight;
+
+  // Height if messages container
+  const containerHeight = $messages.scrollHeight;
+
+  // how far have i scrolled
+  const scrollOffset = $messages.scrollTop + visibleHeight;
+
+  if (containerHeight - newMessageHeight <= scrollOffset) {
+    $messages.scrollTop = $messages.scrollHeight;
+  }
+};
+
 socket.on("message", (message) => {
   console.log(message);
   const html = Mustache.render(messageTemplate, {
+    username: message.username,
     message: message.text,
     createdAt: moment(message.createdAt).format("h:mm a"),
   });
   $messages.insertAdjacentHTML("beforeend", html);
+  autoscroll();
 });
 
 socket.on("locationMessage", (url) => {
   console.log(url);
   const html = Mustache.render(locationTemplate, {
+    username: url.username,
     location: url.url,
     createdAt: moment(url.createdAt).format("h:mm a"),
   });
   $messages.insertAdjacentHTML("beforeend", html);
+  autoscroll();
+});
+
+socket.on("roomData", ({ room, users }) => {
+  const html = Mustache.render(sidebarTemplate, {
+    room: room,
+    users: users,
+  });
+  sidebar.innerHTML = html;
 });
 
 $messageForm.addEventListener("submit", (event) => {
